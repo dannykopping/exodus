@@ -1,0 +1,22 @@
+{
+  "name": "infomaniac/exodus",
+  "type": "library",
+  "description": "Automatic migrations using Doctrine DBAL",
+  "keywords": ["migration", "dbal", "exodus"],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Danny Kopping",
+      "email": "dannykopping@gmail.com"
+    }
+  ],
+  "require": {
+    "php": ">=5.3.3",
+    "doctrine/dbal": "v2.4.0"
+  },
+  "autoload": {
+    "psr-0": {
+      "Exodus\\": "src/"
+    }
+  }
+}
