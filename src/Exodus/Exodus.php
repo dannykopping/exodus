@@ -4,9 +4,17 @@ namespace Exodus;
 use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\SchemaDiff;
 use Exodus\Exception\ExodusException;
+use Exodus\Util\Ignore;
 
 class Exodus
 {
+    const FORWARD_DIFF  = 'forward';
+    const BACKWARD_DIFF = 'backward';
+
+    const SCOPE_SOURCE      = 'source';
+    const SCOPE_DESTINATION = 'destination';
+    const SCOPE_BOTH        = 'both';
+
     /**
      * @var Server
      */
@@ -17,8 +25,15 @@ class Exodus
      */
     private $destination;
 
-    const FORWARD_DIFF  = 'forward';
-    const BACKWARD_DIFF = 'backward';
+    /**
+     * @var array
+     */
+    private $sourceIgnores = array();
+
+    /**
+     * @var array
+     */
+    private $destinationIgnores = array();
 
     public function __construct(Server $source, Server $destination)
     {
@@ -28,6 +43,7 @@ class Exodus
 
     /**
      * @param string $direction
+     *
      * @throws ExodusException
      * @return SchemaDiff
      */
@@ -63,9 +79,37 @@ class Exodus
         );
     }
 
+    public function ignoreTables($tables, $scope = self::SCOPE_BOTH)
+    {
+        if(empty($tables)) {
+            return;
+        }
+
+        if(!is_array($tables)) {
+            $tables = array($tables);
+        }
+
+        if($scope == self::SCOPE_SOURCE || $scope == self::SCOPE_BOTH) {
+            $this->sourceIgnores = array_merge($this->sourceIgnores, $tables);
+
+            if($this->getSource()) {
+                $this->getSource()->setIgnore($this->sourceIgnores);
+            }
+        }
+
+        if($scope == self::SCOPE_DESTINATION || $scope == self::SCOPE_BOTH) {
+            $this->destinationIgnores = array_merge($this->destinationIgnores, $tables);
+
+            if($this->getDestination()) {
+                $this->getDestination()->setIgnore($this->destinationIgnores);
+            }
+        }
+    }
+
     /**
      * @param string $direction
-     * @param bool $single
+     * @param bool   $single
+     *
      * @throws Exception\ExodusException
      * @return array
      */
@@ -82,8 +126,8 @@ class Exodus
         }
 
         $queries = $this->getRawDiff($direction)->toSql($connection->getDatabasePlatform());
-        if(count($queries) && $single) {
-            $queries = implode(';'.PHP_EOL, $queries);
+        if (count($queries) && $single) {
+            $queries = implode(';' . PHP_EOL, $queries);
         }
 
         return $queries;

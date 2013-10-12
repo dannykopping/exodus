@@ -14,6 +14,9 @@ class Server
     private $password;
     private $driver;
 
+    private $ignore = array();
+    const IGNORE_TABLE_REGEX = '/^((?!%s).)*$/im';
+
     const PDO_MYSQL         = 'pdo_mysql';
     const PDO_SQLITE        = 'pdo_sqlite';
     const PDO_PGSQL         = 'pdo_pgsql';
@@ -30,6 +33,11 @@ class Server
      * @var Connection
      */
     private $connection;
+
+    /**
+     * @var Configuration
+     */
+    private $config;
 
     function __construct($schema, $host, $username, $password, $port = 3306, $driver = self::PDO_MYSQL)
     {
@@ -48,7 +56,7 @@ class Server
      */
     public function connect()
     {
-        $config           = new Configuration();
+        $this->config     = new Configuration();
         $connectionParams = array(
             'dbname'   => $this->getSchema(),
             'user'     => $this->getUsername(),
@@ -58,8 +66,34 @@ class Server
             'driver'   => $this->getDriver(),
         );
 
-        $this->connection = DriverManager::getConnection($connectionParams, $config);
+        $this->connection = DriverManager::getConnection($connectionParams, $this->config);
         return $this->connection;
+    }
+
+    /**
+     * @param array $ignore
+     */
+    public function setIgnore($ignore)
+    {
+        $this->ignore = $ignore;
+
+        if(empty($this->config)) {
+            return;
+        }
+
+        // apply ignores
+        $ignore = implode('|', $ignore);
+        if (!empty($ignore)) {
+            $this->config->setFilterSchemaAssetsExpression(sprintf(self::IGNORE_TABLE_REGEX, $ignore));
+        }
+    }
+
+    /**
+     * @return array
+     */
+    public function getIgnore()
+    {
+        return $this->ignore;
     }
 
     /**
@@ -72,7 +106,7 @@ class Server
 
     public function closeConnection()
     {
-        if($this->connection) {
+        if ($this->connection) {
             $this->connection = null;
         }
     }
